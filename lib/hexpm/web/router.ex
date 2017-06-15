@@ -12,21 +12,27 @@ defmodule Hexpm.Web.Router do
     plug :put_secure_browser_headers
     plug :web_user_agent
     plug :login
+    plug :default_repository
   end
 
   pipeline :upload do
     plug :accepts, @accepted_formats
     plug :auth_gate
     plug :user_agent
+    plug :authenticate
+    plug Hexpm.Web.Plugs.Attack
     plug :fetch_body
     plug :read_body_finally
+    plug :default_repository
   end
 
   pipeline :api do
     plug :accepts, @accepted_formats
     plug :auth_gate
     plug :user_agent
-    plug Hexpm.PlugAttack
+    plug :authenticate
+    plug Hexpm.Web.Plugs.Attack
+    plug :default_repository
   end
 
   scope "/", Hexpm.Web do
@@ -111,8 +117,12 @@ defmodule Hexpm.Web.Router do
   scope "/api", Hexpm.Web.API, as: :api do
     pipe_through :upload
 
-    post "/packages/:name/releases",               ReleaseController, :create
-    post "/packages/:name/releases/:version/docs", DocsController,    :create
+    for prefix <- ["/", "/repositories/:repository"] do
+      scope prefix do
+        post "/packages/:name/releases",               ReleaseController, :create
+        post "/packages/:name/releases/:version/docs", DocsController,    :create
+      end
+    end
   end
 
   scope "/api", Hexpm.Web.API, as: :api do
@@ -125,22 +135,29 @@ defmodule Hexpm.Web.Router do
     get    "/users/:name/test",  UserController, :test
     post   "/users/:name/reset", UserController, :reset
 
-    get    "/packages",       PackageController, :index
-    get    "/packages/:name", PackageController, :show
+    get    "/repositories",             RepositoryController, :index
+    get    "/repositories/:repository", RepositoryController, :show
 
-    get    "/packages/:name/releases/:version", ReleaseController, :show
-    delete "/packages/:name/releases/:version", ReleaseController, :delete
+    for prefix <- ["/", "/repositories/:repository"] do
+      scope prefix do
+        get    "/packages",       PackageController, :index
+        get    "/packages/:name", PackageController, :show
 
-    post   "/packages/:name/releases/:version/retire", RetirementController, :create
-    delete "/packages/:name/releases/:version/retire", RetirementController, :delete
+        get    "/packages/:name/releases/:version", ReleaseController, :show
+        delete "/packages/:name/releases/:version", ReleaseController, :delete
 
-    get    "/packages/:name/releases/:version/docs", DocsController, :show
-    delete "/packages/:name/releases/:version/docs", DocsController, :delete
+        post   "/packages/:name/releases/:version/retire", RetirementController, :create
+        delete "/packages/:name/releases/:version/retire", RetirementController, :delete
 
-    get    "/packages/:name/owners",        OwnerController, :index
-    get    "/packages/:name/owners/:email", OwnerController, :show
-    put    "/packages/:name/owners/:email", OwnerController, :create
-    delete "/packages/:name/owners/:email", OwnerController, :delete
+        get    "/packages/:name/releases/:version/docs", DocsController, :show
+        delete "/packages/:name/releases/:version/docs", DocsController, :delete
+
+        get    "/packages/:name/owners",        OwnerController, :index
+        get    "/packages/:name/owners/:email", OwnerController, :show
+        put    "/packages/:name/owners/:email", OwnerController, :create
+        delete "/packages/:name/owners/:email", OwnerController, :delete
+      end
+    end
 
     get    "/keys",       KeyController, :index
     get    "/keys/:name", KeyController, :show

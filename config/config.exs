@@ -45,10 +45,6 @@ config :ex_aws,
   access_key_id:     {:system, "HEX_S3_ACCESS_KEY"},
   secret_access_key: {:system, "HEX_S3_SECRET_KEY"}
 
-config :ex_aws, :httpoison_opts,
-  recv_timeout: 30_000,
-  hackney: [pool: true]
-
 config :comeonin,
   bcrypt_log_rounds: 4
 
@@ -60,6 +56,14 @@ config :hexpm, Hexpm.Web.Endpoint,
   root: Path.dirname(__DIR__),
   secret_key_base: "Cc2cUvbm9x/uPD01xnKmpmU93mgZuht5cTejKf/Z2x0MmfqE1ZgHJ1/hSZwd8u4L",
   render_errors: [view: Hexpm.Web.ErrorView, accepts: ~w(html json elixir erlang)]
+
+config :hexpm, Hexpm.Repo,
+  pool: DBConnection.Sojourn,
+  protector: false,
+  overload_alarm: false
+
+config :sasl,
+  sasl_error_logger: false
 
 config :hexpm, Hexpm.Emails.Mailer,
   adapter: Bamboo.SMTPAdapter,

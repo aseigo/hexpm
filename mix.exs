@@ -22,7 +22,8 @@ defmodule Hexpm.Mixfile do
   end
 
   defp elixirc_paths(:test), do: ["lib", "test/support"]
-  defp elixirc_paths(_),     do: ["lib"]
+  defp elixirc_paths(:dev), do: ["lib", "test/support/fake.ex", "test/support/factory.ex"]
+  defp elixirc_paths(_), do: ["lib"]
 
   defp gpb_options do
     [verify: :always,
@@ -48,7 +49,6 @@ defmodule Hexpm.Mixfile do
      {:earmark, "~> 1.0"},
      {:ex_aws, "~> 1.0"},
      {:gpb, "~> 3.23"},
-     {:httpoison, "~> 0.8"},
      {:jiffy, "~> 0.14"},
      {:plug, "~> 1.2"},
      {:porcelain, "~> 2.0"},
@@ -56,6 +56,7 @@ defmodule Hexpm.Mixfile do
      {:sweet_xml, "~> 0.5"},
      {:plug_attack, "~> 0.3"},
      {:hackney, "~> 1.7"},
+     {:sbroker, "~> 1.0"},
      {:ex_machina, "~> 2.0", only: [:dev, :test]},
      {:phoenix_live_reload, "~> 1.0", only: :dev},
      {:rollbax, "~> 0.5", only: :prod}]
@@ -63,7 +64,7 @@ defmodule Hexpm.Mixfile do
 
   defp aliases do
     ["compile.gpb": &compile_gpb/1,
-     "ecto.setup": ["ecto.create", "ecto.migrate", "run priv/repo/seeds.exs"],
+     "ecto.setup": ["ecto.drop", "ecto.create", "ecto.migrate", "run priv/repo/seeds.exs"],
      "ecto.reset": ["ecto.drop", "ecto.create", "ecto.migrate"],
      "test": ["ecto.migrate", "test"]]
   end

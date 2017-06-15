@@ -8,6 +8,7 @@ defmodule Hexpm.Repository.Package do
     field :latest_version, Hexpm.Version, virtual: true
     timestamps()
 
+    belongs_to :repository, Repository
     has_many :releases, Release
     has_many :package_owners, PackageOwner
     has_many :owners, through: [:package_owners, :owner]
@@ -24,27 +25,38 @@ defmodule Hexpm.Repository.Package do
     ic inets jinterface kernel Makefile megaco mnesia observer odbc orber
     os_mon ose otp_mibs parsetools percept pman public_key reltool runtime_tools
     sasl snmp ssh ssl stdlib syntax_tools test_server toolbar tools tv typer
-    webtool wx xmerl)
+    webtool wx xmerl
+  )
   @app_names ~w(firenest toucan net)
+  @windows_names ~w(
+    nul con prn aux com1 com2 com3 com4 com5 com6 com7 com8 com9lpt1 lpt2
+    lpt3 lpt4 lpt5 lpt6 lpt7 lpt8 lpt9
+  )
 
-  @reserved_names @elixir_names ++ @otp_names ++ @tool_names ++ @app_names
+  @reserved_names Enum.concat [
+    @elixir_names,
+    @otp_names,
+    @tool_names,
+    @app_names,
+    @windows_names
+  ]
 
   defp changeset(package, :create, params) do
     changeset(package, :update, params)
-    |> unique_constraint(:name, name: "packages_name_idx")
+    |> unique_constraint(:name, name: "packages_repository_id_name_index")
   end
 
   defp changeset(package, :update, params) do
     cast(package, params, ~w(name))
     |> cast_embed(:meta, required: true)
     |> validate_required(:name)
-    |> validate_length(:name, min: 3)
+    |> validate_length(:name, min: 2)
     |> validate_format(:name, ~r"^[a-z]\w*$")
     |> validate_exclusion(:name, @reserved_names)
   end
 
-  def build(owner, params) do
-    changeset(%Package{}, :create, params)
+  def build(repository, owner, params) do
+    changeset(build_assoc(repository, :packages), :create, params)
     |> put_assoc(:package_owners, [%PackageOwner{owner_id: owner.id}])
   end
 
@@ -136,6 +148,13 @@ defmodule Hexpm.Repository.Package do
 
     from(p in query,
       where: fragment("?->'extra' @> ?", p.meta, ^extra))
+  end
+
+  defp search_param("depends", search, query) do
+    from(p in query,
+         join: pd in Hexpm.Repository.PackageDependant,
+         on: p.id == pd.dependant_id,
+         where: pd.name == ^search)
   end
 
   defp search_param(_, _, query) do
